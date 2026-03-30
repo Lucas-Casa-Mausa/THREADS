@@ -1,0 +1,99 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+from typing import List
+from uuid import UUID
+from app.db.session import get_db
+from app.db.models.quiz_result import QuizResult
+from app.db.models.user import User
+from app.schemas.quiz import (
+    QuizQuestion, 
+    QuizSubmit, 
+    QuizFeedback, 
+    QuizResultResponse,
+    QuizSummary
+)
+from app.services.quiz_service import get_questions, check_answer
+from app.api.deps import get_current_user
+
+router = APIRouter(prefix="/quiz", tags=["quiz"])
+
+@router.get("/questions", response_model=List[QuizQuestion])
+async def get_quiz_questions():
+    """Get all quiz questions (without correct answers)."""
+    return get_questions()
+
+@router.post("/submit", response_model=QuizFeedback)
+async def submit_quiz_answer(
+    submission: QuizSubmit,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Submit a quiz answer and get immediate feedback."""
+    
+    # Check answer
+    result = check_answer(submission.question_id, submission.selected)
+    
+    # Save result to database
+    quiz_result = QuizResult(
+        user_id=submission.user_id,
+        question_id=submission.question_id,
+        selected=submission.selected,
+        is_correct=result["is_correct"],
+        score=result["score"]
+    )
+    
+    db.add(quiz_result)
+    await db.commit()
+    
+    return QuizFeedback(**result)
+
+@router.get("/results/{user_id}", response_model=List[QuizResultResponse])
+async def get_quiz_results(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all quiz results for a user."""
+    result = await db.execute(
+        select(QuizResult)
+        .where(QuizResult.user_id == user_id)
+        .order_by(QuizResult.submitted_at.desc())
+    )
+    results = result.scalars().all()
+    return results
+
+@router.get("/summary/{user_id}", response_model=QuizSummary)
+async def get_quiz_summary(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get quiz summary statistics for a user."""
+    
+    # Get latest attempt (most recent 3 questions)
+    result = await db.execute(
+        select(QuizResult)
+        .where(QuizResult.user_id == user_id)
+        .order_by(QuizResult.submitted_at.desc())
+        .limit(3)
+    )
+    latest_results = result.scalars().all()
+    
+    if not latest_results:
+        return QuizSummary(
+            total_questions=0,
+            correct_answers=0,
+            total_score=0,
+            percentage=0.0
+        )
+    
+    total = len(latest_results)
+    correct = sum(1 for r in latest_results if r.is_correct)
+    score = sum(r.score for r in latest_results)
+    percentage = (correct / total * 100) if total > 0 else 0
+    
+    return QuizSummary(
+        total_questions=total,
+        correct_answers=correct,
+        total_score=score,
+        percentage=percentage
+    )
