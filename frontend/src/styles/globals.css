@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Custom Properties */
+:root {
+  /* Thread Colors */
+  --color-thread-cyan: #00FFD1;
+  --color-thread-green: #39FF14;
+  --color-thread-coral: #FF6B6B;
+  --color-thread-yellow: #FFD700;
+  
+  /* Dark Theme (Default) */
+  --color-bg: #0A0A0A;
+  --color-surface: #121212;
+  --color-border: #1E1E1E;
+  --color-text: #E5E5E5;
+  --color-text-secondary: #A0A0A0;
+  --color-text-tertiary: #707070;
+}
+
+/* Light Theme */
+:root.light {
+  --color-bg: #FFFFFF;
+  --color-surface: #F5F5F5;
+  --color-border: #E0E0E0;
+  --color-text: #1A1A1A;
+  --color-text-secondary: #4A4A4A;
+  --color-text-tertiary: #8A8A8A;
+}
+
+/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Syne', system-ui, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Grain Texture Overlay — Performance Optimized */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("/noise.svg");
+  background-size: 200px 200px;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: overlay;
+}
+
+/* Code Blocks */
+code, pre {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+/* Selection Color */
+::selection {
+  background-color: var(--color-thread-cyan);
+  color: var(--color-bg);
+}
+
+/* Scrollbar Styling (Dark) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2A2A2A;
+}
+
+/* Focus Visible for Accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-thread-cyan);
+  outline-offset: 2px;
+}
+
+/* Utility Classes */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-thread-cyan via-thread-green to-thread-coral bg-clip-text text-transparent;
+  }
+  
+  .glow-cyan {
+    filter: drop-shadow(0 0 10px rgba(0, 255, 209, 0.6));
+  }
+  
+  .glow-green {
+    filter: drop-shadow(0 0 10px rgba(57, 255, 20, 0.6));
+  }
+  
+  .glow-coral {
+    filter: drop-shadow(0 0 10px rgba(255, 107, 107, 0.6));
+  }
+}
+
+/* Animation Performance */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Remove will-change after animation completes */
+.animation-done {
+  will-change: auto;
+}
