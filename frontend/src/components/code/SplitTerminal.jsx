@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import CodeBlock from './CodeBlock'
 import Badge from '../ui/Badge'
@@ -62,6 +63,7 @@ Finished C
   parallel: {
     python: `# Parallel Execution (multiprocessing)
 from multiprocessing import Pool
+import os
 import time
 
 def task(args):

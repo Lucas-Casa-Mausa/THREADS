@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { quizAPI } from '../lib/api'
+import { useUserStore } from '../store/userStore'
 
 const QUIZ_QUESTIONS = [
   {
@@ -67,15 +69,24 @@ export const useQuiz = create((set, get) => ({
     const { questions, answers, currentQuestion } = get()
     const question = questions[currentQuestion]
     const selectedAnswer = answers[question.id]
-    
+
     if (!selectedAnswer) return
 
     const isCorrect = selectedAnswer === question.correct
-    
+
     set(state => ({
       showFeedback: true,
       score: isCorrect ? state.score + 1 : state.score
     }))
+
+    // Persist to backend when authenticated. Fire-and-forget — UI feedback
+    // is local and instantaneous; we don't block on the network nor surface
+    // errors (the local quiz is also valuable on its own).
+    if (useUserStore.getState().isAuthenticated) {
+      quizAPI
+        .submitAnswer({ question_id: question.id, selected: selectedAnswer })
+        .catch((err) => console.warn('Quiz sync failed:', err))
+    }
   },
 
   nextQuestion: () => {
