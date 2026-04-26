@@ -29,8 +29,17 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
         )
-    
-    result = await db.execute(select(User).where(User.id == UUID(user_id)))
+
+    try:
+        user_uuid = UUID(user_id)
+    except (ValueError, TypeError, AttributeError):
+        # Malformed sub claim — treat as invalid token, don't leak details.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+        )
+
+    result = await db.execute(select(User).where(User.id == user_uuid))
     user = result.scalar_one_or_none()
     
     if not user:

@@ -29,34 +29,40 @@ async def submit_quiz_answer(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Submit a quiz answer and get immediate feedback."""
-    
+    """Submit a quiz answer for the authenticated user and get immediate feedback."""
+
     # Check answer
     result = check_answer(submission.question_id, submission.selected)
-    
-    # Save result to database
+
+    # Always bind the result to the authenticated user — never trust submission.user_id.
     quiz_result = QuizResult(
-        user_id=submission.user_id,
+        user_id=current_user.id,
         question_id=submission.question_id,
         selected=submission.selected,
         is_correct=result["is_correct"],
         score=result["score"]
     )
-    
+
     db.add(quiz_result)
     await db.commit()
-    
+
     return QuizFeedback(**result)
 
 @router.get("/results/{user_id}", response_model=List[QuizResultResponse])
 async def get_quiz_results(
     user_id: UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Get all quiz results for a user."""
+    """Get all quiz results for the authenticated user."""
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot access another user's quiz results",
+        )
     result = await db.execute(
         select(QuizResult)
-        .where(QuizResult.user_id == user_id)
+        .where(QuizResult.user_id == current_user.id)
         .order_by(QuizResult.submitted_at.desc())
     )
     results = result.scalars().all()
@@ -65,14 +71,20 @@ async def get_quiz_results(
 @router.get("/summary/{user_id}", response_model=QuizSummary)
 async def get_quiz_summary(
     user_id: UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Get quiz summary statistics for a user."""
-    
+    """Get quiz summary statistics for the authenticated user."""
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot access another user's quiz summary",
+        )
+
     # Get latest attempt (most recent 3 questions)
     result = await db.execute(
         select(QuizResult)
-        .where(QuizResult.user_id == user_id)
+        .where(QuizResult.user_id == current_user.id)
         .order_by(QuizResult.submitted_at.desc())
         .limit(3)
     )

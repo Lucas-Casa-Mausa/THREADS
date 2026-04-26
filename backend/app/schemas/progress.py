@@ -7,7 +7,7 @@ class ProgressBase(BaseModel):
     completed: bool = False
 
 class ProgressCreate(ProgressBase):
-    user_id: UUID
+    pass
 
 class ProgressUpdate(BaseModel):
     completed: bool

@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi import _rate_limit_exceeded_handler
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.api.routes import users, progress, quiz
 
 app = FastAPI(
@@ -9,13 +13,18 @@ app = FastAPI(
     description="Interactive educational platform for concurrency concepts"
 )
 
-# CORS Configuration
+# Rate limiter wiring (per-IP, in-memory).
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# CORS — restrict to known origins, methods and headers actually used by the SPA.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 # Include routers

@@ -2,10 +2,11 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 
-# Create async engine
+# Create async engine. echo only when DEBUG is true — avoids logging every
+# query (and its bound params) in production.
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=True,
+    echo=settings.DEBUG,
     future=True,
     pool_pre_ping=True,
 )

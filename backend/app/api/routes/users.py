@@ -1,15 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
 from app.db.models.user import User
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
 from app.core.security import get_password_hash, verify_password, create_access_token
+from app.core.limiter import limiter
+from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
+@router.get("/me", response_model=UserResponse)
+async def get_me(current_user: User = Depends(get_current_user)):
+    """Return the authenticated user."""
+    return current_user
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Register a new user."""
     
     # Check if email already exists
@@ -37,7 +45,8 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     return new_user
 
 @router.post("/login", response_model=Token)
-async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     """Login and get JWT token."""
     
     # Find user by email

@@ -17,7 +17,6 @@ class QuizQuestionWithFeedback(QuizQuestion):
     feedback: Dict[str, str]
 
 class QuizSubmit(BaseModel):
-    user_id: UUID
     question_id: str
     selected: str
 
