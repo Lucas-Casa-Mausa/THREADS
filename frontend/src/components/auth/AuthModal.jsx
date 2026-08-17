@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { authAPI } from '../../lib/api'
 import { useUserStore } from '../../store/userStore'
+import { toast } from '../../store/toastStore'
 
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/
 
@@ -67,6 +68,7 @@ export default function AuthModal({ open, mode = 'login', onClose, onSwitchMode 
     try {
       if (isRegister) {
         await authAPI.register({ email, username, password })
+        toast.success('Conta criada com sucesso!')
       }
       const { data: tokenData } = await authAPI.login({ email, password })
       const token = tokenData.access_token
@@ -75,6 +77,7 @@ export default function AuthModal({ open, mode = 'login', onClose, onSwitchMode 
       localStorage.setItem('access_token', token)
       const { data: me } = await authAPI.me()
       login(me, token)
+      toast.success(`Bem-vindo, ${me.username || me.email}!`)
       onClose()
     } catch (err) {
       setError(extractApiError(err))

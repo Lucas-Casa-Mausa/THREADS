@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuiz } from '../../hooks/useQuiz'
 import QuizQuestion from './QuizQuestion'
@@ -13,8 +14,13 @@ export default function QuizSection() {
     isComplete,
     nextQuestion,
     previousQuestion,
-    getProgress
+    getProgress,
+    fetchQuestions,
   } = useQuiz()
+
+  useEffect(() => {
+    fetchQuestions()
+  }, [fetchQuestions])
 
   const progress = getProgress()
 

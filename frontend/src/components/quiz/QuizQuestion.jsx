@@ -44,7 +44,8 @@ export default function QuizQuestion() {
       <div className="space-y-3 mb-6">
         {question.options.map((option) => {
           const isSelected = selectedAnswer === option.id
-          const isCorrect = option.id === question.correct
+          const correctId = feedback?.correctAnswer || question.correct
+          const isCorrect = correctId ? option.id === correctId : false
           const showCorrect = showFeedback && isCorrect
           const showIncorrect = showFeedback && isSelected && !isCorrect
 

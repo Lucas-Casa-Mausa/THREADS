@@ -25,15 +25,19 @@ api.interceptors.request.use(
   }
 )
 
+import { toast } from '../store/toastStore'
+
 // Response interceptor - Handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      const hadToken = localStorage.getItem('access_token')
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
-      window.location.href = '/'
+      if (hadToken) {
+        toast.error('Sua sessão expirou. Faça login novamente.')
+      }
     }
     return Promise.reject(error)
   }

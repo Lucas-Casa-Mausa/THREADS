@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { quizAPI } from '../lib/api'
 import { useUserStore } from '../store/userStore'
 
-const QUIZ_QUESTIONS = [
+const FALLBACK_QUESTIONS = [
   {
     id: "q1",
     question: "O que melhor descreve Concorrência?",
@@ -51,51 +51,92 @@ const QUIZ_QUESTIONS = [
 ]
 
 export const useQuiz = create((set, get) => ({
-  questions: QUIZ_QUESTIONS,
+  questions: FALLBACK_QUESTIONS,
   answers: {},
   currentQuestion: 0,
   showFeedback: false,
   isComplete: false,
   score: 0,
+  serverFeedbacks: {},
+  isLoading: false,
+
+  fetchQuestions: async () => {
+    set({ isLoading: true })
+    try {
+      const { data } = await quizAPI.getQuestions()
+      if (Array.isArray(data) && data.length > 0) {
+        // Merge backend questions while preserving any local fallback metadata if matching
+        const merged = data.map((remoteQ) => {
+          const fallback = FALLBACK_QUESTIONS.find((f) => f.id === remoteQ.id)
+          return {
+            ...remoteQ,
+            correct: fallback?.correct,
+            feedback: fallback?.feedback,
+          }
+        })
+        set({ questions: merged })
+      }
+    } catch (err) {
+      console.warn('Could not fetch questions from API, using fallback:', err)
+    } finally {
+      set({ isLoading: false })
+    }
+  },
 
   selectAnswer: (questionId, optionId) => {
-    set(state => ({
+    set((state) => ({
       answers: { ...state.answers, [questionId]: optionId },
-      showFeedback: false
+      showFeedback: false,
     }))
   },
 
-  submitAnswer: () => {
+  submitAnswer: async () => {
     const { questions, answers, currentQuestion } = get()
     const question = questions[currentQuestion]
+    if (!question) return
     const selectedAnswer = answers[question.id]
-
     if (!selectedAnswer) return
 
-    const isCorrect = selectedAnswer === question.correct
+    const hasLocalGabarito = typeof question.correct === 'string'
+    const isLocalCorrect = hasLocalGabarito ? selectedAnswer === question.correct : false
 
-    set(state => ({
+    set((state) => ({
       showFeedback: true,
-      score: isCorrect ? state.score + 1 : state.score
+      score: isLocalCorrect ? state.score + 1 : state.score,
     }))
 
-    // Persist to backend when authenticated. Fire-and-forget — UI feedback
-    // is local and instantaneous; we don't block on the network nor surface
-    // errors (the local quiz is also valuable on its own).
+    // If authenticated, sync with backend API and store server feedback
     if (useUserStore.getState().isAuthenticated) {
-      quizAPI
-        .submitAnswer({ question_id: question.id, selected: selectedAnswer })
-        .catch((err) => console.warn('Quiz sync failed:', err))
+      try {
+        const { data } = await quizAPI.submitAnswer({
+          question_id: question.id,
+          selected: selectedAnswer,
+        })
+        set((state) => ({
+          serverFeedbacks: {
+            ...state.serverFeedbacks,
+            [question.id]: {
+              isCorrect: data.is_correct,
+              message: data.message,
+              correctAnswer: data.correct_answer,
+            },
+          },
+          score: !hasLocalGabarito
+            ? (data.is_correct ? state.score + 1 : state.score)
+            : state.score,
+        }))
+      } catch (err) {
+        console.warn('Quiz sync to backend failed:', err)
+      }
     }
   },
 
   nextQuestion: () => {
     const { currentQuestion, questions } = get()
-    
     if (currentQuestion < questions.length - 1) {
-      set({ 
+      set({
         currentQuestion: currentQuestion + 1,
-        showFeedback: false 
+        showFeedback: false,
       })
     } else {
       set({ isComplete: true })
@@ -103,9 +144,9 @@ export const useQuiz = create((set, get) => ({
   },
 
   previousQuestion: () => {
-    set(state => ({
+    set((state) => ({
       currentQuestion: Math.max(0, state.currentQuestion - 1),
-      showFeedback: false
+      showFeedback: false,
     }))
   },
 
@@ -115,26 +156,37 @@ export const useQuiz = create((set, get) => ({
       currentQuestion: 0,
       showFeedback: false,
       isComplete: false,
-      score: 0
+      score: 0,
+      serverFeedbacks: {},
     })
   },
 
   getProgress: () => {
     const { answers, questions } = get()
-    return Object.keys(answers).length / questions.length * 100
+    if (!questions.length) return 0
+    return (Object.keys(answers).length / questions.length) * 100
   },
 
   getCurrentFeedback: () => {
-    const { questions, answers, currentQuestion } = get()
+    const { questions, answers, currentQuestion, serverFeedbacks } = get()
     const question = questions[currentQuestion]
+    if (!question) return null
     const selectedAnswer = answers[question.id]
-    
     if (!selectedAnswer) return null
-    
-    const isCorrect = selectedAnswer === question.correct
-    return {
-      isCorrect,
-      message: isCorrect ? question.feedback.correct : question.feedback.incorrect
+
+    if (serverFeedbacks[question.id]) {
+      return serverFeedbacks[question.id]
     }
-  }
+
+    if (question.correct && question.feedback) {
+      const isCorrect = selectedAnswer === question.correct
+      return {
+        isCorrect,
+        message: isCorrect ? question.feedback.correct : question.feedback.incorrect,
+        correctAnswer: question.correct,
+      }
+    }
+
+    return null
+  },
 }))

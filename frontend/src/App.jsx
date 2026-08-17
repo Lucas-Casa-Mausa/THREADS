@@ -3,6 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import Home from './pages/Home'
 import ErrorBoundary from './components/ui/ErrorBoundary'
+import ToastContainer from './components/ui/ToastContainer'
 import { useUserStore } from './store/userStore'
 import { useProgressStore } from './store/progressStore'
 import { authAPI } from './lib/api'
@@ -35,6 +36,7 @@ function App() {
       <Router>
         <div className="min-h-screen bg-dark-bg text-dark-text dark">
           <ErrorBoundary>
+            <ToastContainer />
             <Home />
           </ErrorBoundary>
         </div>

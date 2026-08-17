@@ -2,11 +2,17 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useUserStore } from '../../store/userStore'
+import { toast } from '../../store/toastStore'
 import AuthModal from '../auth/AuthModal'
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useUserStore()
   const [authMode, setAuthMode] = useState(null) // 'login' | 'register' | null
+
+  const handleLogout = () => {
+    logout()
+    toast.info('Você saiu da sua conta.')
+  }
 
   return (
     <>
@@ -47,7 +53,7 @@ export default function Navbar() {
                     {user?.username || user?.email}
                   </span>
                   <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="text-sm text-gray-400 hover:text-white transition-colors"
                   >
                     Logout
