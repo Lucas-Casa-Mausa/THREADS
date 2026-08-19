@@ -4,5 +4,6 @@ from app.db.session import Base
 from app.db.models.user import User
 from app.db.models.progress import Progress
 from app.db.models.quiz_result import QuizResult
+from app.db.models.quiz_question import QuizQuestion
 
-__all__ = ["Base", "User", "Progress", "QuizResult"]
+__all__ = ["Base", "User", "Progress", "QuizResult", "QuizQuestion"]

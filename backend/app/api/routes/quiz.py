@@ -19,9 +19,9 @@ from app.api.deps import get_current_user
 router = APIRouter(prefix="/quiz", tags=["quiz"])
 
 @router.get("/questions", response_model=List[QuizQuestion])
-async def get_quiz_questions():
+async def get_quiz_questions(db: AsyncSession = Depends(get_db)):
     """Get all quiz questions (without correct answers)."""
-    return get_questions()
+    return await get_questions(db)
 
 @router.post("/submit", response_model=QuizFeedback)
 async def submit_quiz_answer(
@@ -31,8 +31,8 @@ async def submit_quiz_answer(
 ):
     """Submit a quiz answer for the authenticated user and get immediate feedback."""
 
-    # Check answer
-    result = check_answer(submission.question_id, submission.selected)
+    # Check answer from database
+    result = await check_answer(db, submission.question_id, submission.selected)
 
     # Always bind the result to the authenticated user — never trust submission.user_id.
     quiz_result = QuizResult(

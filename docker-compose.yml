@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:14-alpine
+    image: postgres:17-alpine
     container_name: threads-db
     environment:
       POSTGRES_USER: threads

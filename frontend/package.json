@@ -9,10 +9,16 @@
     "preview": "vite preview",
     "lint": "eslint src --ext js,jsx"
   },
-  "keywords": ["concurrency", "education", "react", "animations"],
+  "keywords": [
+    "concurrency",
+    "education",
+    "react",
+    "animations"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "dompurify": "^3.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -21,6 +27,7 @@
     "shiki": "^4.0.2"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.27",
     "axios": "^1.14.0",
